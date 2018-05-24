@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
-	"github.com/gorilla/mux"
+	"path/filepath"
 	"strings"
 )
 
@@ -42,7 +44,25 @@ func CMDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Printf("Done %s", string(out))
 }
-
+func ListHandler(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	list := params["list"]
+	list = "/" + list
+	w.Write([]byte(params["list"]))
+	log.Println("URL:")
+	log.Println(params["list"])
+	var files []string
+	err := filepath.Walk("/home/temp/TV/", func(path string, info os.FileInfo, err error) error {
+		files = append(files, path)
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+	for _, file := range files {
+		log.Println(file)
+	}
+}
 func main() {
 	r := mux.NewRouter()
 	// Routes consist of a path and a handler function.
@@ -50,6 +70,7 @@ func main() {
 	r.HandleFunc("/cmd/{cmd}", CMDHandler).Methods("GET")
 	//r.UseEncodedPath()
 	r.HandleFunc("/url/{url:.*}", URLHandler).Methods("GET")
+	r.HandleFunc("/list/{list:.*}", ListHandler).Methods("GET")
 	//r.HandleFunc(url.QueryEscape("/url/{url}"), URLHandler).Methods("GET")
 	//r.HandleFunc(html.EscapeString("/url/{url}"), URLHandler).Methods("GET")
 	//r.HandleFunc(html.EscapeString("/url/{}"), URLHandler).Methods("GET")
