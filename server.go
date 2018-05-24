@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
-
 	"github.com/gorilla/mux"
+	"strings"
 )
 
 func MainHandler(w http.ResponseWriter, r *http.Request) {
@@ -18,13 +18,16 @@ func URLHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("URL\n"))
 	params := mux.Vars(r)
 	url := params["url"]
+	if strings.Contains(url, "http") == false {
+		url = "https://" + url
+	}
 	fmt.Println(r.URL.EscapedPath())
-	cmd := exec.Command("google-chrome", url)
-	out, err := cmd.CombinedOutput()
+	cmd := exec.Command("google-chrome-unstable", url)
+	_, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("Done %s", string(out))
+	fmt.Printf("Opened '%s' \n", url)
 }
 
 func CMDHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +40,7 @@ func CMDHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatalf("cmd.Run() failed with %s\n", err)
 	}
-	fmt.Println("Done %s", string(out))
+	fmt.Printf("Done %s", string(out))
 }
 
 func main() {
