@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/gorilla/mux"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
@@ -47,21 +47,29 @@ func CMDHandler(w http.ResponseWriter, r *http.Request) {
 func ListHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	list := params["list"]
-	list = "/" + list
 	w.Write([]byte(params["list"]))
 	log.Println("URL:")
 	log.Println(params["list"])
 	var files []string
-	err := filepath.Walk("/home/temp/TV/", func(path string, info os.FileInfo, err error) error {
-		files = append(files, path)
-		return nil
-	})
+	fileInfo, _ := ioutil.ReadDir("/home/temp/" + list)
+	for _, file := range fileInfo {
+		files = append(files, file.Name())
+	}
+	log.Println(files)
+	io.WriteString(w, strings.Join(files, "\n"))
+}
+func PlayHandler(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	play := params["play"]
+	play = "/" + play
+	play = play + "/*"
+	w.Write([]byte(play))
+	cmd := exec.Command("vlc", play)
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		panic(err)
+		log.Fatalf("cmd.Run() failed with %s\n", err)
 	}
-	for _, file := range files {
-		log.Println(file)
-	}
+	fmt.Printf("Done %s", string(out))
 }
 func main() {
 	r := mux.NewRouter()
@@ -71,6 +79,7 @@ func main() {
 	//r.UseEncodedPath()
 	r.HandleFunc("/url/{url:.*}", URLHandler).Methods("GET")
 	r.HandleFunc("/list/{list:.*}", ListHandler).Methods("GET")
+	r.HandleFunc("/play/{play:.*}", PlayHandler).Methods("GET")
 	//r.HandleFunc(url.QueryEscape("/url/{url}"), URLHandler).Methods("GET")
 	//r.HandleFunc(html.EscapeString("/url/{url}"), URLHandler).Methods("GET")
 	//r.HandleFunc(html.EscapeString("/url/{}"), URLHandler).Methods("GET")
